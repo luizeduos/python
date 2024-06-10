@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pong Game</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #252525;
+            color: white;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+            position: relative;
+        }
+        canvas {
+            background-color: black;
+        }
+        .instructions {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .instructions h2 {
+            margin-bottom: 10px;
+        }
+
+        div {
+            color: #fff;
+            position: absolute;
+            top: 0;
+            left: 0;
+            font-size: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div>
+        <ul>
+            <li><strong>Seta para cima:</strong> Mover a raquete para cima</li>
+            <li><strong>Seta para baixo:</strong> Mover a raquete para baixo</li>
+        </ul>
+    </div>
+    <canvas id="pongCanvas" width="1280" height="720" style="width: 100vw; height: 100vh;"></canvas>
+    <script>
+        const canvas = document.getElementById('pongCanvas');
+        const context = canvas.getContext('2d');
+
+        class Paddle {
+            constructor(x, y, width, height, color) {
+                this.x = x;
+                this.y = y;
+                this.width = width;
+                this.height = height;
+                this.color = color;
+                this.dy = 0;
+            }
+
+            draw() {
+                context.fillStyle = this.color;
+                context.fillRect(this.x, this.y, this.width, this.height);
+            }
+
+            move() {
+                this.y += this.dy;
+                if (this.y < 0) this.y = 0;
+                if (this.y + this.height > canvas.height) this.y = canvas.height - this.height;
+            }
+        }
+
+        class Ball {
+            constructor(x, y, radius, color) {
+                this.x = x;
+                this.y = y;
+                this.radius = radius;
+                this.color = color;
+                this.dx = 4;
+                this.dy = 4;
+            }
+
+            draw() {
+                context.beginPath();
+                context.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
+                context.fillStyle = this.color;
+                context.fill();
+                context.closePath();
+            }
+
+            move(paddle1, paddle2) {
+                this.x += this.dx;
+                this.y += this.dy;
+
+                // Collide with top and bottom walls
+                if (this.y + this.radius > canvas.height || this.y - this.radius < 0) {
+                    this.dy = -this.dy;
+                }
+
+                // Collide with paddles
+                if (this.x - this.radius < paddle1.x + paddle1.width && 
+                    this.y > paddle1.y && this.y < paddle1.y + paddle1.height) {
+                    this.dx = -this.dx;
+                }
+
+                if (this.x + this.radius > paddle2.x && 
+                    this.y > paddle2.y && this.y < paddle2.y + paddle2.height) {
+                    this.dx = -this.dx;
+                }
+
+                // Reset ball if it goes out of bounds
+                if (this.x + this.radius > canvas.width || this.x - this.radius < 0) {
+                    this.reset();
+                }
+            }
+
+            reset() {
+                this.x = canvas.width / 2;
+                this.y = canvas.height / 2;
+                this.dx = -this.dx;
+                this.dy = 4 * (Math.random() > 0.5 ? 1 : -1);
+            }
+        }
+
+        const paddleWidth = 10;
+        const paddleHeight = 100;
+        const player = new Paddle(10, canvas.height / 2 - paddleHeight / 2, paddleWidth, paddleHeight, 'white');
+        const ai = new Paddle(canvas.width - paddleWidth - 10, canvas.height / 2 - paddleHeight / 2, paddleWidth, paddleHeight, 'white');
+        const ball = new Ball(canvas.width / 2, canvas.height / 2, 10, 'white');
+
+        document.addEventListener('keydown', event => {
+            switch (event.key) {
+                case 'ArrowUp':
+                    player.dy = -6;
+                    break;
+                case 'ArrowDown':
+                    player.dy = 6;
+                    break;
+            }
+        });
+
+        document.addEventListener('keyup', event => {
+            switch (event.key) {
+                case 'ArrowUp':
+                case 'ArrowDown':
+                    player.dy = 0;
+                    break;
+            }
+        });
+
+        function update() {
+            player.move();
+            ai.move();
+            ball.move(player, ai);
+
+            // Simple AI to follow the ball
+            if (ball.y < ai.y + ai.height / 2) {
+                ai.dy = -4;
+            } else if (ball.y > ai.y + ai.height / 2) {
+                ai.dy = 4;
+            } else {
+                ai.dy = 0;
+            }
+        }
+
+        function draw() {
+            context.clearRect(0, 0, canvas.width, canvas.height);
+            player.draw();
+            ai.draw();
+            ball.draw();
+        }
+
+        function loop() {
+            update();
+            draw();
+            requestAnimationFrame(loop);
+        }
+
+        requestAnimationFrame(loop);
+    </script>
+</body>
+</html>
